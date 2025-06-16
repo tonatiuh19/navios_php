@@ -38,7 +38,6 @@ if ($method == 'POST') {
         $filters[] = "a.navios_port_type = ?";
         $types[] = "i";
     }
-    // We'll filter by average rating after fetching, since it's an aggregate
 
     if (count($filters) > 0) {
         $sqlWhere .= " AND " . implode(" AND ", $filters);
@@ -54,7 +53,6 @@ if ($method == 'POST') {
     // Bind parameters dynamically
     $bindTypes = implode('', $types);
     $bindValues = [];
-    // Location is required
     $bindValues[] = $params['location']['lat_min'];
     $bindValues[] = $params['location']['lat_max'];
     $bindValues[] = $params['location']['lng_min'];
@@ -73,6 +71,154 @@ if ($method == 'POST') {
     $ports = [];
     while ($row = $result->fetch_assoc()) {
         $port_id = $row['navios_port_id'];
+        $skip = false;
+
+        // Anchorage type filter (array)
+        if (!empty($params['navios_port_anchorage_type_id']) && is_array($params['navios_port_anchorage_type_id'])) {
+            $in = implode(',', array_fill(0, count($params['navios_port_anchorage_type_id']), '?'));
+            $sqlCheck = "SELECT 1 FROM navios_port_anchorages WHERE navios_port_id=? AND navios_port_anchorage_type_id IN ($in) LIMIT 1";
+            $stmtCheck = $conn->prepare($sqlCheck);
+            $typesCheck = str_repeat('i', count($params['navios_port_anchorage_type_id']) + 1);
+            $bindCheck = array_merge([$port_id], $params['navios_port_anchorage_type_id']);
+            $stmtCheck->bind_param($typesCheck, ...$bindCheck);
+            $stmtCheck->execute();
+            $stmtCheck->store_result();
+            if ($stmtCheck->num_rows == 0) $skip = true;
+            $stmtCheck->close();
+        }
+
+        // Mooring type filter (array)
+        if (!empty($params['navios_port_mooring_type_id']) && is_array($params['navios_port_mooring_type_id'])) {
+            $in = implode(',', array_fill(0, count($params['navios_port_mooring_type_id']), '?'));
+            $sqlCheck = "SELECT 1 FROM navios_port_moorings WHERE navios_port_id=? AND navios_port_mooring_type_id IN ($in) LIMIT 1";
+            $stmtCheck = $conn->prepare($sqlCheck);
+            $typesCheck = str_repeat('i', count($params['navios_port_mooring_type_id']) + 1);
+            $bindCheck = array_merge([$port_id], $params['navios_port_mooring_type_id']);
+            $stmtCheck->bind_param($typesCheck, ...$bindCheck);
+            $stmtCheck->execute();
+            $stmtCheck->store_result();
+            if ($stmtCheck->num_rows == 0) $skip = true;
+            $stmtCheck->close();
+        }
+
+        // Point type filter (array)
+        if (!empty($params['navios_port_point_type_id']) && is_array($params['navios_port_point_type_id'])) {
+            $in = implode(',', array_fill(0, count($params['navios_port_point_type_id']), '?'));
+            $sqlCheck = "SELECT 1 FROM navios_port_points WHERE navios_port_id=? AND navios_port_point_type_id IN ($in) LIMIT 1";
+            $stmtCheck = $conn->prepare($sqlCheck);
+            $typesCheck = str_repeat('i', count($params['navios_port_point_type_id']) + 1);
+            $bindCheck = array_merge([$port_id], $params['navios_port_point_type_id']);
+            $stmtCheck->bind_param($typesCheck, ...$bindCheck);
+            $stmtCheck->execute();
+            $stmtCheck->store_result();
+            if ($stmtCheck->num_rows == 0) $skip = true;
+            $stmtCheck->close();
+        }
+
+        // Seabed type filter (array)
+        if (!empty($params['navios_port_seabed_type_id']) && is_array($params['navios_port_seabed_type_id'])) {
+            $in = implode(',', array_fill(0, count($params['navios_port_seabed_type_id']), '?'));
+            $sqlCheck = "SELECT 1 FROM navios_port_seabeds WHERE navios_port_id=? AND navios_port_seabed_type_id IN ($in) LIMIT 1";
+            $stmtCheck = $conn->prepare($sqlCheck);
+            $typesCheck = str_repeat('i', count($params['navios_port_seabed_type_id']) + 1);
+            $bindCheck = array_merge([$port_id], $params['navios_port_seabed_type_id']);
+            $stmtCheck->bind_param($typesCheck, ...$bindCheck);
+            $stmtCheck->execute();
+            $stmtCheck->store_result();
+            if ($stmtCheck->num_rows == 0) $skip = true;
+            $stmtCheck->close();
+        }
+
+        // Service type filter (array)
+        if (!empty($params['navios_port_service_type_id']) && is_array($params['navios_port_service_type_id'])) {
+            $in = implode(',', array_fill(0, count($params['navios_port_service_type_id']), '?'));
+            $sqlCheck = "SELECT 1 FROM navios_port_services WHERE navios_port_id=? AND navios_port_service_type_id IN ($in) LIMIT 1";
+            $stmtCheck = $conn->prepare($sqlCheck);
+            $typesCheck = str_repeat('i', count($params['navios_port_service_type_id']) + 1);
+            $bindCheck = array_merge([$port_id], $params['navios_port_service_type_id']);
+            $stmtCheck->bind_param($typesCheck, ...$bindCheck);
+            $stmtCheck->execute();
+            $stmtCheck->store_result();
+            if ($stmtCheck->num_rows == 0) $skip = true;
+            $stmtCheck->close();
+        }
+
+        if ($skip) continue;
+
+        $sqlAnchorages = "SELECT a.navios_port_anchorage_id, a.navios_port_anchorage_type_id, a.navios_port_anchorage_created, b.navios_port_anchorage_type_title
+                          FROM navios_port_anchorages as a
+                          INNER JOIN navios_port_anchorage_types as b ON b.navios_port_anchorage_type_id=a.navios_port_anchorage_type_id
+                          WHERE a.navios_port_id=?";
+        $stmtAnchorages = $conn->prepare($sqlAnchorages);
+        $stmtAnchorages->bind_param("i", $port_id);
+        $stmtAnchorages->execute();
+        $anchoragesResult = $stmtAnchorages->get_result();
+        $anchorages = [];
+        while ($anchorageRow = $anchoragesResult->fetch_assoc()) {
+            $anchorages[] = $anchorageRow;
+        }
+        $stmtAnchorages->close();
+        $row['anchorages'] = $anchorages;
+
+        $sqlMoorings = "SELECT a.navios_port_mooring_id, a.navios_port_mooring_type_id, a.navios_port_mooring_created, b.navios_port_mooring_type_title
+                        FROM navios_port_moorings as a
+                        INNER JOIN navios_port_mooring_types as b ON b.navios_port_mooring_type_id=a.navios_port_mooring_type_id
+                        WHERE a.navios_port_id=?";
+        $stmtMoorings = $conn->prepare($sqlMoorings);
+        $stmtMoorings->bind_param("i", $port_id);
+        $stmtMoorings->execute();
+        $mooringsResult = $stmtMoorings->get_result();
+        $moorings = [];
+        while ($mooringRow = $mooringsResult->fetch_assoc()) {
+            $moorings[] = $mooringRow;
+        }
+        $stmtMoorings->close();
+        $row['moorings'] = $moorings;
+
+        $sqlPoints = "SELECT a.navios_port_point_id, a.navios_port_point_type_id, a.navios_port_point_created, b.navios_port_point_type_title
+                      FROM navios_port_points as a
+                      INNER JOIN navios_port_point_types as b ON b.navios_port_point_type_id=a.navios_port_point_type_id
+                      WHERE a.navios_port_id=?";
+        $stmtPoints = $conn->prepare($sqlPoints);
+        $stmtPoints->bind_param("i", $port_id);
+        $stmtPoints->execute();
+        $pointsResult = $stmtPoints->get_result();
+        $points = [];
+        while ($pointRow = $pointsResult->fetch_assoc()) {
+            $points[] = $pointRow;
+        }
+        $stmtPoints->close();
+        $row['points'] = $points;
+
+        $sqlSeabeds = "SELECT a.navios_port_seabed_id, a.navios_port_seabed_type_id, a.navios_port_seabed_created, b.navios_port_seabed_type_title
+                       FROM navios_port_seabeds as a
+                       INNER JOIN navios_port_seabed_types as b ON b.navios_port_seabed_type_id=a.navios_port_seabed_type_id
+                       WHERE a.navios_port_id=?";
+        $stmtSeabeds = $conn->prepare($sqlSeabeds);
+        $stmtSeabeds->bind_param("i", $port_id);
+        $stmtSeabeds->execute();
+        $seabedsResult = $stmtSeabeds->get_result();
+        $seabeds = [];
+        while ($seabedRow = $seabedsResult->fetch_assoc()) {
+            $seabeds[] = $seabedRow;
+        }
+        $stmtSeabeds->close();
+        $row['seabeds'] = $seabeds;
+
+        $sqlServices = "SELECT a.navios_port_service_id, a.navios_port_service_type_id, a.navios_port_service_created, b.navios_port_service_type_title
+                        FROM navios_port_services as a
+                        INNER JOIN navios_port_service_types as b ON b.navios_port_service_type_id=a.navios_port_service_type_id
+                        WHERE a.navios_port_id=?";
+        $stmtServices = $conn->prepare($sqlServices);
+        $stmtServices->bind_param("i", $port_id);
+        $stmtServices->execute();
+        $servicesResult = $stmtServices->get_result();
+        $services = [];
+        while ($serviceRow = $servicesResult->fetch_assoc()) {
+            $services[] = $serviceRow;
+        }
+        $stmtServices->close();
+        $row['services'] = $services;
 
         // Get ratings and comments for this port
         $sqlRatings = "SELECT navios_ports_ratings_id, navios_port_id, navios_ports_ratings_rate, navios_ports_ratings_rate_comment, navios_ports_ratings_created 
