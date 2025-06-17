@@ -252,6 +252,18 @@ if ($method == 'POST') {
 
         $row['average_rating'] = $average_rating;
         $row['comments'] = $comments;
+        $allImages = [
+            "https://t3.ftcdn.net/jpg/03/91/30/54/360_F_391305437_W3R9yZLAJTkYQ3aAAWmAZhTkPdwXdPOz.jpg",
+            "https://media.gq.com.mx/photos/60b0fcbefe7c1331bb811feb/master/pass/PLAYA.jpg",
+            "https://data.pixiz.com/output/user/frame/preview/api/big/1/1/5/5/3185511_0ad1e.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/6/68/Muelle_Miraflores_%281%29.JPG",
+            "https://vanguardia.com.mx/binrepository/1200x680/0c0/0d0/down-right/11604/WFYW/muelle-de-matanchen-nayarit_1-4941957_20230224173913.jpg"
+        ];
+
+        // Pick 3 random images for each port
+        $randomImages = $allImages;
+        shuffle($randomImages);
+        $row['images'] = array_slice($randomImages, 0, 3);
 
         $ports[] = $row;
     }
