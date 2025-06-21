@@ -43,7 +43,7 @@ if ($method == 'POST') {
         $sqlWhere .= " AND " . implode(" AND ", $filters);
     }
 
-    $sql = "SELECT a.navios_port_id, a.navios_port_title, a.navios_port_price, a.navios_port_description, a.navios_port_type, a.navios_port_latitude, a.navios_port_longitude, a.navios_port_active, b.navios_port_type_title 
+    $sql = "SELECT a.navios_port_id, a.navios_port_title, a.navios_port_price, a.navios_port_place, a.navios_port_description, a.navios_port_type, a.navios_port_latitude, a.navios_port_longitude, a.navios_port_active, b.navios_port_type_title 
             FROM navios_ports as a 
             INNER JOIN navios_port_types as b ON b.navios_port_type_id = a.navios_port_type 
             $sqlWhere";
