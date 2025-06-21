@@ -16,15 +16,17 @@ if ($method == 'POST') {
     $customerId = isset($data['customer_id']) ? $data['customer_id'] : null;
 
     // Query to get the API key from the database
-    $sql = "SELECT a.key_string 
-            FROM platforms_keys as a
-            INNER JOIN platforms_environments as b on b.type = a.title AND b.test = a.test
-            WHERE a.type = 'secret'";
+    $sql = "SELECT a.navios_environments_keys_key_string 
+                FROM navios_environments_keys as a
+                INNER JOIN navios_environments as b 
+                    ON b.navios_environment_type = a.navios_environments_keys_title 
+                    AND b.navios_environment_test = a.navios_environments_keys_test
+                WHERE a.navios_environments_keys_type = 'secret'";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $apiKey = $row['key_string'];
+        $apiKey = $row['navios_environments_keys_key_string'];
 
         \Stripe\Stripe::setApiKey($apiKey); // Set the Stripe API key from the database
 
