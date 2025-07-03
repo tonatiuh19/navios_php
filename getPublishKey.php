@@ -26,8 +26,17 @@ if ($method == 'POST') {
             "error" => "Publishable key not found"
         ]);
     }
+    
+    // Free result set
+    if ($result) {
+        $result->free();
+    }
 } else {
     echo json_encode(false);
 }
-$conn->close();
+
+// Always close the connection
+if ($conn) {
+    $conn->close();
+}
 ?>

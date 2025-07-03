@@ -162,5 +162,7 @@ if ($method == 'POST') {
     echo json_encode(["message" => "Invalid request method"]);
 }
 
-$conn->close();
+if ($conn) {
+    $conn->close();
+}
 ?>

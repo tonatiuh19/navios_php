@@ -1,1 +1,4 @@
-[19-Jun-2025 20:43:27 America/Mexico_City] PHP Warning:  Undefined array key "key_string" in /home3/alanchat/garbrix.com/navios/api/createPaymentIntent.php on line 29
+[03-Jul-2025 14:34:02 America/Mexico_City] PHP Fatal error:  Uncaught Error: Cannot use object of type mysqli_result as array in /home3/alanchat/garbrix.com/navios/api/updateUser.php:115
+Stack trace:
+#0 {main}
+  thrown in /home3/alanchat/garbrix.com/navios/api/updateUser.php on line 115
