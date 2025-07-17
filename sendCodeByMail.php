@@ -18,6 +18,16 @@ if ($method == 'POST') {
         $navios_user_id = $params['navios_user_id'];
         $email = $params['email'];
 
+        // Get user name from DB
+        $sql = "SELECT navios_user_full_name FROM navios_users WHERE navios_user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $navios_user_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $user_name = $result ? $result['navios_user_full_name'] : '';
+
         // Delete old session codes for this user
         $sql = "DELETE FROM navios_users_sessions WHERE navios_user_id = ?";
         $stmt = $conn->prepare($sql);
@@ -32,9 +42,9 @@ if ($method == 'POST') {
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("i", $session_code);
             $stmt->execute();
-            $result = $stmt->get_result()->fetch_assoc();
+            $uniqueResult = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-        } while ($result['count'] > 0);
+        } while ($uniqueResult['count'] > 0);
 
         // Insert the new session code into navios_users_sessions
         $date_start = date('Y-m-d H:i:s');
@@ -46,18 +56,21 @@ if ($method == 'POST') {
         $stmt->execute();
         $stmt->close();
 
-        // Send session code via PHPMailer (very basic email)
+        // Load email template and replace placeholders
+        $templatePath = __DIR__ . '/code-email.html';
+        $emailBody = file_exists($templatePath) ? file_get_contents($templatePath) : '';
+        $emailBody = str_replace(['{{code}}', '{{name}}'], [$session_code, $user_name], $emailBody);
+
+        // Send session code via PHPMailer
         $mail = new PHPMailer(true);
         try {
             //Server settings
-            $mail->SMTPDebug = 2;                                     // Enable verbose debug output
-            // $mail->isSMTP();                                            // Set mailer to use SMTP
-            $mail->Host = 'mail.garbrix.com';  // Specify main and backup SMTP servers
-            $mail->SMTPAuth = true;                                   // Enable SMTP authentication
-            $mail->Username = 'no-reply@garbrix.com';                     // SMTP username
-            $mail->Password = 'Mailer123';                               // SMTP password
-            $mail->SMTPSecure = 'ssl';                                  // Enable TLS encryption, `ssl` also accepted
-            $mail->Port = 469;                                   // TCP port to connect to, use 465 for `PHPMailer::ENCRYPTION_SMTPS` above
+            $mail->Host = 'mail.garbrix.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'no-reply@garbrix.com';
+            $mail->Password = 'Mailer123';
+            $mail->SMTPSecure = 'ssl';
+            $mail->Port = 469;
             $mail->CharSet = 'UTF-8';
 
             //Recipients
@@ -66,8 +79,8 @@ if ($method == 'POST') {
 
             // Content
             $mail->isHTML(true);
-            $mail->Subject = $session_code.' es tu código de verificación de Navios';
-            $mail->Body = "Tu código de verificación es: $session_code";
+            $mail->Subject = $session_code . ' is your DockNow verification code';
+            $mail->Body = $emailBody ?: "Your verification code is: $session_code";
 
             $mail->send();
             echo json_encode(true);
